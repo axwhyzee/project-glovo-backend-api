@@ -16,7 +16,7 @@ client = MongoClient(CONNECTION_STRING)
 db = client[DB_NAME]
 
 
-def find_all(collection: str) -> list[dict]:
+def find_all(collection) ->:
     '''
     Get all documents for a specific collection
 
@@ -28,7 +28,7 @@ def find_all(collection: str) -> list[dict]:
     return list(cursor)
 
 
-def find_many(collection: str, condition: dict) -> list[dict]:
+def find_many(collection, condition):
     '''
     Find multiple documents
 

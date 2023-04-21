@@ -14,23 +14,23 @@ app.add_middleware(
 )
 
 @app.get('/')
-def read_root() -> str:
+def read_root():
     return 'Index'
 
 @app.get('/edges/')
-async def get_edges() -> list[dict]:
+async def get_edges():
     docs = find_all(COLLECTION_RELATIONS)
 
     return docs
 
 @app.get('/nodes/')
-async def get_nodes() -> list[dict]:
+async def get_nodes():
     docs = find_all(COLLECTION_NODES)
 
     return docs
 
 @app.get('/news/')
-async def get_news() -> list[dict]:
+async def get_news():
     # _id, title, url, datetime, keywords
     docs = find_all(COLLECTION_NEWS)
 
