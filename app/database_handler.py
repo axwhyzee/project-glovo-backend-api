@@ -16,7 +16,7 @@ client = MongoClient(CONNECTION_STRING)
 db = client[DB_NAME]
 
 
-def find_all(collection) ->:
+def find_all(collection):
     '''
     Get all documents for a specific collection
 
