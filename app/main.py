@@ -31,16 +31,10 @@ async def get_nodes() -> list[dict]:
 
 @app.get('/news/')
 async def get_news() -> list[dict]:
-    # _id, title, url, datetime, key1, key2, key3, key4, key5
-    docs = find_all(COLLECTION_NEWS)[:10]
-
-    print(docs)
+    # _id, title, url, datetime, keywords
+    docs = find_all(COLLECTION_NEWS)
 
     return docs
-
-# to run ...
-# pip install -r API_requirements.txt
-# uvicorn API:app --host 0.0.0.0 --port 10000
 
 if __name__ == '__main__':
     uvicorn.run('main:app', host='127.0.0.1', port=10000, reload=True)
