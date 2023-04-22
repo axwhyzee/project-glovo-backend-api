@@ -28,13 +28,13 @@ async def get_nodes():
     docs = find_all(COLLECTION_NODES)
 
     return docs
-
+    
 @app.get('/news/')
-async def get_news():
+async def get_news_by_key(key):
     # _id, title, url, datetime, keywords
-    docs = find_all(COLLECTION_NEWS)
+    docs = find_many(COLLECTION_NEWS, {'keys': {'$in': [key]}})
 
     return docs
 
 if __name__ == '__main__':
-    uvicorn.run('main:app', host='127.0.0.1', port=10000, reload=True)
+    uvicorn.run('main:app', host='127.0.0.1', port=10000)

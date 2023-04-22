@@ -36,4 +36,6 @@ def find_many(collection, condition):
     :param dict condition: Match condition
     :return: List of documents that match condition
     '''
-    return db[collection].find(condition, {'_id': 0})
+    cursor = db[collection].find(condition, {'_id': 0})
+
+    return list(cursor)
