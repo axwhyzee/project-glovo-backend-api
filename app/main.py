@@ -5,8 +5,6 @@ import json
 from database_handler import *
 
 
-NEWS_CHUNK_SIZE = 10 
-
 app = FastAPI()
 
 app.add_middleware(
@@ -33,33 +31,14 @@ async def get_nodes():
     return docs
     
 @app.get('/news/')
-async def get_news_by_key(request: Request):
-    key = ""
-    page = 1
-
-    try:
-        request_body = await request.json()
-    except json.decoder.JSONDecodeError:
-        print('Request body not in JSON format')
-
-        return {
-            'articles': [],
-            'page':     0,
-            'pages':    0,
-            'status':   'Request body not in JSON format'
-        }
-
-    if 'key' in request_body:
-        key = request_body['key']
-
-    if 'page' in request_body and page > 0:
-        page = request_body['page']
-
+async def get_news_by_key(key: str = '', page: int = 1, size: int = 10):
     docs = find_many(COLLECTION_NEWS, {'keys': {'$in': [key]}}) if key else find_all(COLLECTION_NEWS)
-    pages = 1 + len(docs) // NEWS_CHUNK_SIZE
+    size = max(1, size) # size >= 1
+    pages = 1 + len(docs) // size
+    page = min(max(1, page), pages) # 1 <= page <= pages
 
     return {
-        'articles': docs[(page - 1) * NEWS_CHUNK_SIZE : page * NEWS_CHUNK_SIZE], 
+        'articles': docs[(page - 1) * size : page * size], 
         'page':     page, 
         'pages':    pages,
         'status':   'Success'
@@ -67,4 +46,4 @@ async def get_news_by_key(request: Request):
 
 
 if __name__ == '__main__':
-    uvicorn.run('main:app', host='0.0.0.0', port=10000)
+    uvicorn.run('main:app', host='0.0.0.0', port=10000, reload=True)
