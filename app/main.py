@@ -54,4 +54,4 @@ async def get_news_by_key(key: str = '', page: int = 1, size: int = 10):
 
 
 if __name__ == '__main__':
-    uvicorn.run('main:app', host='127.0.0.1', port=10000, reload=True)
+    uvicorn.run('main:app', host='0.0.0.0', port=10000, reload=True)
