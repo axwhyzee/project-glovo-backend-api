@@ -1,19 +1,18 @@
 from dotenv import load_dotenv, find_dotenv
 from pymongo import MongoClient
+from settings import read_config
 import os
 
 # load env variable file
 load_dotenv(find_dotenv())
+config = read_config('MONGODB')
 
-PASSWORD = os.environ.get("MONGODB_PWD")
-CONNECTION_STRING = f'mongodb+srv://admin:{PASSWORD}@cluster0.xo29eao.mongodb.net/?retryWrites=true&w=majority'
-DB_NAME = 'project-glovo'
-COLLECTION_NEWS = 'news'
-COLLECTION_NODES = 'nodes'
-COLLECTION_RELATIONS = 'relations'
+COLLECTION_NEWS = config['COLLECTION_NEWS']
+COLLECTION_NODES = config['COLLECTION_NODES']
+COLLECTION_RELATIONS = config['COLLECTION_RELATIONS']
 
-client = MongoClient(CONNECTION_STRING)
-db = client[DB_NAME]
+client = MongoClient(os.environ.get('MONGODB_URL'))
+db = client[config['DB_NAME']]
 
 
 def find_all(collection):
@@ -28,7 +27,7 @@ def find_all(collection):
     return list(cursor)
 
 
-def find_many(collection, condition):
+def find_many(collection, condition, projection):
     '''
     Find multiple documents
 
@@ -36,6 +35,6 @@ def find_many(collection, condition):
     :param dict condition: Match condition
     :return: List of documents that match condition
     '''
-    cursor = db[collection].find(condition, {'_id': 0})
+    cursor = db[collection].find(condition, projection)
 
     return list(cursor)
