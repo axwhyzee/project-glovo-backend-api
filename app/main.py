@@ -53,8 +53,11 @@ async def get_news_by_key(key: str = '', page: int = 1, size: int = 10):
         database=DB_RAW_NAME,
         collection=COLLECTION_NEWS, 
         condition={'keys': {'$in': [key]}}, 
-        projection={'_id': 0, 'content': 0}
-    ) if key else find_all(COLLECTION_NEWS)
+        projection={'_id': 0}
+    ) if key else find_all(
+        database=DB_RAW_NAME,
+        collection=COLLECTION_NEWS
+    )
     
     size = max(1, size) # size >= 1
     pages = 1 + len(docs) // size
