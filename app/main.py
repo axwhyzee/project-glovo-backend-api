@@ -139,7 +139,7 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
             condition={'keys': {'$in': keys}}, 
             projection={'_id': 0}
         )
-        r.set(cache_key, docs)
+        r.set(cache_key, json.dumps(docs))
 
     return JSONResponse(content=docs, headers=HEADERS)
 
