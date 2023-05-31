@@ -1,6 +1,6 @@
 import json
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
@@ -127,7 +127,7 @@ async def get_prerendered_coordinates() -> JSONResponse:
 async def get_news_cluster(centroid: str) -> JSONResponse:
     cache_key = f'cluster/?centroid={centroid}'
     cache = r.get(cache_key)
-    if not cache:
+    if cache:
         docs = json.loads(cache)
     else:
         peripherals = find_many(
@@ -153,9 +153,13 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
 
 @app.get('/flush-cache/')
 async def flush_cache(token: str) -> JSONResponse:
-    if fernet.decrypt(token.encode('utf-8')).decode('utf-8') == FERNET_SECRET:
-        r.flushdb()
-        return JSONResponse(content={'status': 'Success'})
+    try:
+        if fernet.decrypt(token.encode('utf-8')).decode('utf-8') == FERNET_SECRET:
+            print(r.keys())
+            r.flushall()
+            return JSONResponse(content={'status': 'Success'})
+    except InvalidToken as e:
+        pass
     return JSONResponse(content={'status': 'Invalid API key'})
 
 if __name__ == '__main__':
