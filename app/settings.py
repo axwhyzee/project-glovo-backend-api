@@ -10,6 +10,8 @@ parser = configparser.ConfigParser()
 parser.read('config.ini')
 config = parser['MONGODB']
 
+API_KEY = config['API_KEY']
+
 COLLECTION_NEWS = config['COLLECTION_NEWS']
 
 COLLECTION_NODES = config['COLLECTION_NODES']
@@ -21,7 +23,9 @@ COLLECTION_COORDINATES = config['COLLECTION_COORDINATES']
 DB_RAW_NAME = config['DB_RAW_NAME']
 
 DB_RENDERED_NAME = config['DB_RENDERED_NAME']
-    
+
+FERNET_KEY = config['FERNET_KEY']
+
 HEADERS = {'Cache-Control': 'public, max-age=900'} # 15 min cache
 
 MONGODB_URL = os.environ.get('MONGODB_URL')

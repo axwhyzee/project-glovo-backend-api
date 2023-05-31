@@ -1,5 +1,6 @@
 import json
 
+from cryptography.fernet import Fernet
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
@@ -11,12 +12,14 @@ from database_handler import (
     find_many
 )
 from settings import (
+    API_KEY,
     COLLECTION_NEWS,
     COLLECTION_NODES,
     COLLECTION_RELATIONS,
     COLLECTION_COORDINATES,
     DB_RAW_NAME,
     DB_RENDERED_NAME,
+    FERNET_KEY,
     HEADERS,
     REDIS_HOST,
     REDIS_PORT,
@@ -29,6 +32,8 @@ r = redis.Redis(
     port=int(REDIS_PORT), 
     password=REDIS_PASSWORD
 )
+
+fernet = Fernet(FERNET_KEY)
 
 app = FastAPI()
 
@@ -122,7 +127,7 @@ async def get_prerendered_coordinates() -> JSONResponse:
 async def get_news_cluster(centroid: str) -> JSONResponse:
     cache_key = f'cluster/?centroid={centroid}'
     cache = r.get(cache_key)
-    if cache:
+    if not cache:
         docs = json.loads(cache)
     else:
         peripherals = find_many(
@@ -136,7 +141,6 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
             keys.add(peripheral['src'])
             keys.add(peripheral['dst'])
         keys.add(centroid)
-
         docs = find_many(
             database=DB_RAW_NAME,
             collection=COLLECTION_NEWS,
@@ -146,6 +150,13 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
         r.set(cache_key, json.dumps(docs))
 
     return JSONResponse(content=docs, headers=HEADERS)
+
+@app.get('/flush-cache/')
+async def flush_cache(token: str) -> JSONResponse:
+    if fernet.decrypt(token.encode('utf-8')).decode('utf-8') == API_KEY:
+        r.flushdb()
+        return JSONResponse(content={'status': 'Success'})
+    return JSONResponse(content={'status': 'Invalid API key'})
 
 if __name__ == '__main__':
     uvicorn.run('main:app', host='0.0.0.0', port=10000, reload=True)
