@@ -1,20 +1,34 @@
+import json
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
+import redis
 import uvicorn
+
 from database_handler import (
+    find_all,
+    find_many
+)
+from settings import (
     COLLECTION_NEWS,
     COLLECTION_NODES,
     COLLECTION_RELATIONS,
     COLLECTION_COORDINATES,
     DB_RAW_NAME,
     DB_RENDERED_NAME,
-    find_all,
-    find_many
+    HEADERS,
+    REDIS_HOST,
+    REDIS_PORT,
+    REDIS_PASSWORD
 )
 
 
-headers = {'Cache-Control': 'public, max-age=900'} # 15 min cache
+r = redis.Redis(
+    host=REDIS_HOST, 
+    port=int(REDIS_PORT), 
+    password=REDIS_PASSWORD
+)
 
 app = FastAPI()
 
@@ -26,61 +40,108 @@ app.add_middleware(
 )
 
 @app.get('/')
-def read_root():
-    return JSONResponse(content='Index', headers=headers)
+def read_root() -> JSONResponse:
+    return JSONResponse(content='Index', headers=HEADERS)
 
 @app.get('/edges/')
-async def get_edges():
-    docs = find_all(
-        database=DB_RAW_NAME, 
-        collection=COLLECTION_RELATIONS
-    )
+async def get_edges() -> JSONResponse:
+    cache = r.get('edges')
+    if cache:
+        docs = json.loads(cache)
+    else:
+        docs = find_all(
+            database=DB_RAW_NAME, 
+            collection=COLLECTION_RELATIONS
+        )
+        r.set('edges', json.dumps(docs))
 
-    return JSONResponse(content=docs, headers=headers)
+    return JSONResponse(content=docs, headers=HEADERS)
 
 @app.get('/nodes/')
-async def get_nodes():
-    docs = find_all(
-        database=DB_RAW_NAME,
-        collection=COLLECTION_NODES
-    )
+async def get_nodes() -> JSONResponse:
+    cache = r.get('nodes')
+    if cache:
+        docs = json.loads(cache)
+    else:
+        docs = find_all(
+            database=DB_RAW_NAME,
+            collection=COLLECTION_NODES
+        )
+        r.set('nodes', json.dumps(docs))
 
-    return JSONResponse(content=docs, headers=headers)
+    return JSONResponse(content=docs, headers=HEADERS)
     
 @app.get('/news/')
-async def get_news_by_key(key: str = '', page: int = 1, size: int = 10):
-    docs = find_many(
-        database=DB_RAW_NAME,
-        collection=COLLECTION_NEWS, 
-        condition={'keys': {'$in': [key]}}, 
-        projection={'_id': 0}
-    ) if key else find_all(
-        database=DB_RAW_NAME,
-        collection=COLLECTION_NEWS
-    )
+async def get_news_by_key(
+    key: str = '', 
+    page: int = 1, 
+    size: int = 10
+) -> JSONResponse:
+    cache_key = f'news/?key={key}&page={page}&size={size}'
+    cache = r.get(cache_key)
+    if cache:
+        content = json.loads(cache)
+    else:
+        docs = find_many(
+            database=DB_RAW_NAME,
+            collection=COLLECTION_NEWS, 
+            condition={'keys': key}, 
+            projection={'_id': 0}
+        ) if key else find_all(
+            database=DB_RAW_NAME,
+            collection=COLLECTION_NEWS
+        )
+        size = max(1, size) # size >= 1
+        pages = 1 + len(docs) // size
+        page = min(max(1, page), pages) # 1 <= page <= pages
+        content = {
+            'articles': docs[(page - 1) * size : page * size], 
+            'page': page, 
+            'pages': pages,
+            'status': 'Success'
+        }
+        r.set(cache_key, json.dumps(content))
     
-    size = max(1, size) # size >= 1
-    pages = 1 + len(docs) // size
-    page = min(max(1, page), pages) # 1 <= page <= pages
-
-    content = {
-        'articles': docs[(page - 1) * size : page * size], 
-        'page': page, 
-        'pages': pages,
-        'status': 'Success'
-    }
-
-    return JSONResponse(content=content, headers=headers)
+    return JSONResponse(content=content, headers=HEADERS)
 
 @app.get('/coordinates/')
-async def get_prerendered_coordinates():
-    docs = find_all(
-        database=DB_RENDERED_NAME, 
-        collection=COLLECTION_COORDINATES
-    )
+async def get_prerendered_coordinates() -> JSONResponse:
+    cache = r.get('coordinates')
+    if cache:
+        docs = json.loads(cache)
+    else:
+        docs = find_all(
+            database=DB_RENDERED_NAME, 
+            collection=COLLECTION_COORDINATES
+        )
+        r.set('coordinates', json.dumps(docs))
 
-    return JSONResponse(content=docs, headers=headers)
+    return JSONResponse(content=docs, headers=HEADERS)
 
+@app.get('/cluster/')
+async def get_news_cluster(centroid: str) -> JSONResponse:
+    cache_key = f'cluster/?centroid={centroid}'
+    cache = r.get(cache_key)
+    if cache:
+        docs = json.loads(cache)
+    else:
+        peripherals = find_many(
+            database=DB_RAW_NAME,
+            collection=COLLECTION_RELATIONS,
+            condition={'src': centroid},
+            projection={'_id':0, 'dst': 1}
+        )
+        keys = list(map(lambda x:x['dst'], peripherals))
+        keys.append(centroid)
+        docs = find_many(
+            database=DB_RAW_NAME,
+            collection=COLLECTION_NEWS,
+            condition={'keys': {'$in': keys}}, 
+            projection={'_id': 0}
+        )
+        r.set(cache_key, docs)
+
+    return JSONResponse(content=docs, headers=HEADERS)
 
 if __name__ == '__main__':
     uvicorn.run('main:app', host='0.0.0.0', port=10000, reload=True)
