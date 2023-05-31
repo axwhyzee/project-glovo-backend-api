@@ -12,7 +12,7 @@ from database_handler import (
     find_many
 )
 from settings import (
-    API_KEY,
+    FERNET_SECRET,
     COLLECTION_NEWS,
     COLLECTION_NODES,
     COLLECTION_RELATIONS,
@@ -153,7 +153,7 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
 
 @app.get('/flush-cache/')
 async def flush_cache(token: str) -> JSONResponse:
-    if fernet.decrypt(token.encode('utf-8')).decode('utf-8') == API_KEY:
+    if fernet.decrypt(token.encode('utf-8')).decode('utf-8') == FERNET_SECRET:
         r.flushdb()
         return JSONResponse(content={'status': 'Success'})
     return JSONResponse(content={'status': 'Invalid API key'})
