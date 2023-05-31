@@ -128,15 +128,19 @@ async def get_news_cluster(centroid: str) -> JSONResponse:
         peripherals = find_many(
             database=DB_RAW_NAME,
             collection=COLLECTION_RELATIONS,
-            condition={'src': centroid},
-            projection={'_id':0, 'dst': 1}
+            condition={'$or': [{'src': centroid}, {'dst': centroid}]},
+            projection={'_id':0, 'dst': 1, 'src': 1}
         )
-        keys = list(map(lambda x:x['dst'], peripherals))
-        keys.append(centroid)
+        keys = set()
+        for peripheral in peripherals:
+            keys.add(peripheral['src'])
+            keys.add(peripheral['dst'])
+        keys.add(centroid)
+
         docs = find_many(
             database=DB_RAW_NAME,
             collection=COLLECTION_NEWS,
-            condition={'keys': {'$in': keys}}, 
+            condition={'keys': {'$in': list(keys)}}, 
             projection={'_id': 0}
         )
         r.set(cache_key, json.dumps(docs))
