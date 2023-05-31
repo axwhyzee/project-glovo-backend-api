@@ -22,9 +22,9 @@ DB_RAW_NAME = config['DB_RAW_NAME']
 
 DB_RENDERED_NAME = config['DB_RENDERED_NAME']
 
-FERNET_KEY = config['FERNET_KEY']
+FERNET_KEY = os.environ.get('FERNET_KEY')
 
-FERNET_SECRET = config['FERNET_SECRET']
+FERNET_SECRET = os.environ.get('FERNET_SECRET')
 
 HEADERS = {'Cache-Control': 'public, max-age=900'} # 15 min cache
 
